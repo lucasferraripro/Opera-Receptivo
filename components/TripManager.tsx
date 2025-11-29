@@ -1,11 +1,13 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { Trip, VehicleType, Passenger, Coordinates } from '../types';
-import { Plus, User, MapPin, Clock, Truck, Users, Trash2, Edit, AlertTriangle, ChevronDown, ChevronUp, Map, MoreVertical, DollarSign, Search, Loader, FileText, StickyNote } from 'lucide-react';
+import { Plus, User, MapPin, Truck, Trash2, Edit, AlertTriangle, ChevronDown, ChevronUp, Map, DollarSign, Loader, StickyNote } from 'lucide-react';
 
 interface TripManagerProps {
   trips: Trip[];
   onAddTrip: (trip: Trip) => void;
+  onUpdateTrip: (trip: Trip) => void;
+  onDeleteTrip: (tripId: string) => void;
   onAddPassenger: (tripId: string, pax: Passenger) => void;
 }
 
@@ -35,7 +37,6 @@ export const AddressAutocomplete: React.FC<AddressAutocompleteProps> = ({ value,
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    // Close suggestions on click outside
     function handleClickOutside(event: MouseEvent) {
       if (wrapperRef.current && !wrapperRef.current.contains(event.target as Node)) {
         setShowSuggestions(false);
@@ -47,7 +48,7 @@ export const AddressAutocomplete: React.FC<AddressAutocompleteProps> = ({ value,
 
   const handleInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
-    onChange(val); // Keep updating parent text
+    onChange(val); 
 
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
 
@@ -55,7 +56,6 @@ export const AddressAutocomplete: React.FC<AddressAutocompleteProps> = ({ value,
       setLoading(true);
       timeoutRef.current = setTimeout(async () => {
         try {
-          // Using OpenStreetMap Nominatim API (Free, no key required for demo)
           const response = await fetch(
             `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(val)}&addressdetails=1&limit=5&countrycodes=br`
           );
@@ -67,7 +67,7 @@ export const AddressAutocomplete: React.FC<AddressAutocompleteProps> = ({ value,
         } finally {
           setLoading(false);
         }
-      }, 500); // 500ms debounce
+      }, 500); 
     } else {
       setSuggestions([]);
       setShowSuggestions(false);
@@ -75,19 +75,12 @@ export const AddressAutocomplete: React.FC<AddressAutocompleteProps> = ({ value,
   };
 
   const handleSelect = (item: any) => {
-    // Construct a nice display name
-    // Prefer display_name for full context, or construct if too long
     const mainText = item.display_name;
-
     const coords: Coordinates = {
         lat: parseFloat(item.lat),
         lng: parseFloat(item.lon)
     };
-
-    // Extract first part of address for shorter display in input if needed, but keeping full is safer
-    // We will just use the full display name or the first 3 parts
     const shortText = mainText.split(',').slice(0, 3).join(',');
-
     onChange(shortText, coords);
     setShowSuggestions(false);
   };
@@ -148,7 +141,6 @@ const RouteVisualizer: React.FC<{ origin: string; destination: string; time: str
            </div>
         </div>
 
-        {/* Intermediate Stops */}
         {stops && stops.length > 0 && (
           <div className="space-y-6 mb-6">
             {stops.map((stop, index) => (
@@ -173,7 +165,6 @@ const RouteVisualizer: React.FC<{ origin: string; destination: string; time: str
         </div>
       </div>
       
-      {/* Decorative Map Graphic Placeholder */}
       <div className="mt-6 h-40 bg-blue-100 dark:bg-slate-800 rounded-lg overflow-hidden relative border border-blue-200 dark:border-slate-700">
          <div className="absolute inset-0 opacity-20 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]"></div>
          <div className="absolute inset-0 flex items-center justify-center text-slate-400 dark:text-slate-500 flex-col gap-2">
@@ -191,8 +182,6 @@ const SeatMap: React.FC<{ trip: Trip; vehicleType: VehicleType }> = ({ trip, veh
   const totalSeats = trip.totalSeats;
   const seatsPerRow = vehicleType === VehicleType.BUS ? 4 : 3;
 
-  // Map passengers to seats sequentially
-  // In a real app, you'd store seat assignments. Here we simulate it.
   const seatAssignments: Record<number, Passenger> = {};
   let currentSeat = 1;
   trip.passengers.forEach(pax => {
@@ -222,21 +211,17 @@ const SeatMap: React.FC<{ trip: Trip; vehicleType: VehicleType }> = ({ trip, veh
       </div>
       
       <div className="flex-1 p-6 flex gap-6">
-        {/* The Seat Grid */}
         <div className="flex-1 flex justify-center overflow-y-auto custom-scrollbar max-h-[500px]">
           <div className="bg-slate-100 dark:bg-slate-900/50 p-4 rounded-2xl border border-slate-200 dark:border-slate-700 inline-block">
-             {/* Driver */}
              <div className="flex justify-start mb-8 border-b-2 border-slate-200 dark:border-slate-600 pb-4">
                 <div className="w-10 h-10 rounded-full bg-slate-200 dark:bg-slate-700 border-2 border-slate-300 dark:border-slate-600 flex items-center justify-center text-[10px] text-slate-500 font-bold">MOT</div>
              </div>
 
              <div className="grid gap-x-6 gap-y-3" style={{ gridTemplateColumns: `repeat(${vehicleType === VehicleType.BUS ? 2 : 1}, 1fr)` }}>
-                {/* We render rows logic here manually for better control of the aisle */}
                 {Array.from({ length: Math.ceil(totalSeats / seatsPerRow) }).map((_, rowIndex) => {
                    const rowStart = rowIndex * seatsPerRow + 1;
                    return (
                      <div key={rowIndex} className="flex gap-3">
-                        {/* Left Side */}
                         <div className="flex gap-2">
                            {[0, 1].map(offset => {
                              const seatNum = rowStart + offset;
@@ -259,14 +244,10 @@ const SeatMap: React.FC<{ trip: Trip; vehicleType: VehicleType }> = ({ trip, veh
                              );
                            })}
                         </div>
-                        
-                        {/* Aisle (only for bus) */}
                         {vehicleType === VehicleType.BUS && <div className="w-4 text-center text-[10px] text-slate-300 flex items-center justify-center"></div>}
-
-                        {/* Right Side */}
                         <div className="flex gap-2">
                            {[2, 3].map(offset => {
-                             if (vehicleType === VehicleType.VAN && offset > 2) return null; // Van usually 1-2 layout or 1-1-1
+                             if (vehicleType === VehicleType.VAN && offset > 2) return null;
                              const seatNum = rowStart + offset;
                              if (seatNum > totalSeats) return null;
                              const seat = seats[seatNum - 1];
@@ -294,7 +275,6 @@ const SeatMap: React.FC<{ trip: Trip; vehicleType: VehicleType }> = ({ trip, veh
           </div>
         </div>
 
-        {/* Selected Seat Info Panel */}
         <div className="w-48 hidden lg:block border-l border-slate-100 dark:border-slate-700 pl-4 space-y-4">
            {selectedSeat ? (
              <div className="animate-fade-in">
@@ -335,21 +315,19 @@ const SeatMap: React.FC<{ trip: Trip; vehicleType: VehicleType }> = ({ trip, veh
   );
 };
 
-export const TripManager: React.FC<TripManagerProps> = ({ trips, onAddTrip, onAddPassenger }) => {
+export const TripManager: React.FC<TripManagerProps> = ({ trips, onAddTrip, onUpdateTrip, onDeleteTrip, onAddPassenger }) => {
   const [isTripModalOpen, setIsTripModalOpen] = useState(false);
   const [isPaxModalOpen, setIsPaxModalOpen] = useState(false);
   const [selectedTripId, setSelectedTripId] = useState<string | null>(null);
   const [expandedTripId, setExpandedTripId] = useState<string | null>(null);
+  const [editingTripId, setEditingTripId] = useState<string | null>(null);
 
-  // New Trip Form State
   const [newTrip, setNewTrip] = useState<Partial<Trip> & { stopsInput?: string }>({
     vehicleType: VehicleType.BUS,
     totalSeats: 50,
     stopsInput: ''
   });
 
-  // New Pax Form State
-  // Added "addressNumber" to help refine the API result manually
   const [newPax, setNewPax] = useState<Partial<Passenger> & { addressSearch: string, addressNumber: string }>({
     paxCount: 1,
     childrenCount: 0,
@@ -363,38 +341,67 @@ export const TripManager: React.FC<TripManagerProps> = ({ trips, onAddTrip, onAd
     notes: ''
   });
 
-  // Auto-calculate receivable when Total or Paid changes
   useEffect(() => {
     const total = newPax.totalValue || 0;
     const paid = newPax.paidAmount || 0;
     setNewPax(prev => ({ ...prev, receivableAmount: total - paid }));
   }, [newPax.totalValue, newPax.paidAmount]);
 
-  // Phone mask handler
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const formatted = formatPhoneNumber(e.target.value);
     setNewPax(prev => ({ ...prev, phone: formatted }));
+  };
+
+  const openTripModal = (trip?: Trip) => {
+      if (trip) {
+          setEditingTripId(trip.id);
+          setNewTrip({
+              ...trip,
+              stopsInput: trip.stops ? trip.stops.join(', ') : ''
+          });
+      } else {
+          setEditingTripId(null);
+          setNewTrip({ vehicleType: VehicleType.BUS, totalSeats: 50, stopsInput: '', vehicleModel: '' });
+      }
+      setIsTripModalOpen(true);
+  };
+
+  const handleDeleteTrip = (tripId: string) => {
+      if (window.confirm("Deseja remover mesmo este veículo e todos os seus passageiros? Esta ação não pode ser desfeita.")) {
+          onDeleteTrip(tripId);
+      }
   };
 
   const handleTripSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const stopsArray = newTrip.stopsInput ? newTrip.stopsInput.split(',').map(s => s.trim()).filter(s => s !== '') : [];
     
-    const trip: Trip = {
-      id: Math.random().toString(36).substr(2, 9),
-      passengers: [],
-      date: new Date().toISOString().split('T')[0],
-      vehicleModel: 'Genérico',
-      origin: 'Agência Sede', // Default start point
-      destination: '',
-      time: '08:00',
-      stops: stopsArray,
-      ...newTrip
-    } as Trip;
-    
-    onAddTrip(trip);
+    if (editingTripId) {
+        // Update Existing
+        const updatedTrip: Trip = {
+            id: editingTripId,
+            ...newTrip,
+            stops: stopsArray,
+            passengers: trips.find(t => t.id === editingTripId)?.passengers || []
+        } as Trip;
+        onUpdateTrip(updatedTrip);
+    } else {
+        // Create New
+        const trip: Trip = {
+          id: Math.random().toString(36).substr(2, 9),
+          passengers: [],
+          date: newTrip.date || new Date().toISOString().split('T')[0],
+          vehicleModel: newTrip.vehicleModel || 'Genérico',
+          origin: newTrip.origin || 'Agência Sede',
+          destination: newTrip.destination || '',
+          time: newTrip.time || '08:00',
+          stops: stopsArray,
+          ...newTrip
+        } as Trip;
+        onAddTrip(trip);
+    }
+
     setIsTripModalOpen(false);
-    // Reset form defaults
     setNewTrip({ vehicleType: VehicleType.BUS, totalSeats: 50, stopsInput: '' });
   };
 
@@ -407,11 +414,7 @@ export const TripManager: React.FC<TripManagerProps> = ({ trips, onAddTrip, onAd
 
     const currentOccupancy = targetTrip.passengers.reduce((sum, p) => sum + p.paxCount, 0);
     const newPaxCount = newPax.paxCount || 1;
-    
-    // Auto-detect overbooking
     const isOverbooked = (currentOccupancy + newPaxCount) > targetTrip.totalSeats;
-
-    // Combine address search with the manual number
     const finalAddress = newPax.addressSearch + (newPax.addressNumber ? `, ${newPax.addressNumber}` : '');
 
     const pax: Passenger = {
@@ -442,7 +445,7 @@ export const TripManager: React.FC<TripManagerProps> = ({ trips, onAddTrip, onAd
           <p className="text-slate-500 dark:text-slate-400">Gerencie veículos, guias e manifestos de passageiros.</p>
         </div>
         <button 
-          onClick={() => setIsTripModalOpen(true)}
+          onClick={() => openTripModal()}
           className="bg-brand-600 hover:bg-brand-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 font-medium transition-colors shadow-lg shadow-brand-500/30"
         >
           <Plus size={20} />
@@ -460,7 +463,6 @@ export const TripManager: React.FC<TripManagerProps> = ({ trips, onAddTrip, onAd
 
           return (
             <div key={trip.id} className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden transition-all duration-300">
-              {/* Trip Header */}
               <div className="p-6 border-b border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div className="flex items-start gap-4 cursor-pointer" onClick={() => toggleExpand(trip.id)}>
                   <div className={`p-3 rounded-xl ${trip.vehicleType === VehicleType.BUS ? 'bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400' : 'bg-orange-100 dark:bg-orange-900/40 text-orange-600 dark:text-orange-400'}`}>
@@ -490,20 +492,35 @@ export const TripManager: React.FC<TripManagerProps> = ({ trips, onAddTrip, onAd
                     </p>
                     <p className="text-xs text-slate-400 dark:text-slate-500">Assentos Ocupados</p>
                   </div>
-                  <button 
-                    onClick={() => { setSelectedTripId(trip.id); setIsPaxModalOpen(true); }}
-                    className="bg-slate-900 dark:bg-brand-600 text-white p-3 rounded-lg hover:bg-slate-800 dark:hover:bg-brand-700 transition-colors shadow-lg shadow-slate-900/20"
-                    title="Adicionar Passageiro"
-                  >
-                    <Plus size={20} />
-                  </button>
-                  <button onClick={() => toggleExpand(trip.id)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
-                    {isExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
-                  </button>
+                  <div className="flex gap-2">
+                    <button 
+                        onClick={() => openTripModal(trip)}
+                        className="p-2 text-slate-400 hover:text-brand-600 dark:hover:text-brand-400 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
+                        title="Editar Viagem"
+                    >
+                        <Edit size={20} />
+                    </button>
+                    <button 
+                        onClick={() => handleDeleteTrip(trip.id)}
+                        className="p-2 text-slate-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                        title="Excluir Viagem"
+                    >
+                        <Trash2 size={20} />
+                    </button>
+                    <button 
+                        onClick={() => { setSelectedTripId(trip.id); setIsPaxModalOpen(true); }}
+                        className="bg-slate-900 dark:bg-brand-600 text-white p-2 rounded-lg hover:bg-slate-800 dark:hover:bg-brand-700 transition-colors shadow-lg shadow-slate-900/20"
+                        title="Adicionar Passageiro"
+                    >
+                        <Plus size={20} />
+                    </button>
+                    <button onClick={() => toggleExpand(trip.id)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+                        {isExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+                    </button>
+                  </div>
                 </div>
               </div>
 
-              {/* Visual Seat Bar (Summary) */}
               <div className="h-2 w-full bg-slate-100 dark:bg-slate-700 flex">
                  <div 
                    className={`h-full transition-all duration-500 ${isFull ? 'bg-red-500' : 'bg-emerald-500'}`} 
@@ -518,11 +535,8 @@ export const TripManager: React.FC<TripManagerProps> = ({ trips, onAddTrip, onAd
                  )}
               </div>
 
-              {/* Expanded Details */}
               {isExpanded && (
                 <div className="p-6 bg-white dark:bg-slate-800 animate-fade-in border-t border-slate-100 dark:border-slate-700">
-                  
-                  {/* DETAIL LAYOUT: Map & Seats */}
                   <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 mb-8">
                      <div className="xl:col-span-4">
                         <RouteVisualizer 
@@ -537,7 +551,6 @@ export const TripManager: React.FC<TripManagerProps> = ({ trips, onAddTrip, onAd
                      </div>
                   </div>
 
-                  {/* MANIFESTO TABLE */}
                   <div>
                     <h4 className="text-sm font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-4 flex items-center gap-2 border-b border-slate-100 dark:border-slate-700 pb-2">
                       Manifesto de Passageiros
@@ -627,12 +640,14 @@ export const TripManager: React.FC<TripManagerProps> = ({ trips, onAddTrip, onAd
         })}
       </div>
 
-      {/* Modal: Add Trip */}
+      {/* Modal: Add/Edit Trip */}
       {isTripModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
           <div className="bg-white dark:bg-slate-800 rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden animate-fade-in border border-slate-200 dark:border-slate-700 max-h-[90vh] overflow-y-auto">
             <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-700 flex justify-between items-center bg-slate-50 dark:bg-slate-800">
-              <h2 className="text-lg font-bold text-slate-800 dark:text-white">Registrar Nova Viagem</h2>
+              <h2 className="text-lg font-bold text-slate-800 dark:text-white">
+                  {editingTripId ? 'Editar Viagem' : 'Registrar Nova Viagem'}
+              </h2>
               <button onClick={() => setIsTripModalOpen(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"><Trash2 size={20} className="rotate-45" /></button>
             </div>
             <form onSubmit={handleTripSubmit} className="p-6 space-y-4">
@@ -659,6 +674,17 @@ export const TripManager: React.FC<TripManagerProps> = ({ trips, onAddTrip, onAd
                 </div>
               </div>
               
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Modelo do Veículo</label>
+                <input 
+                  type="text"
+                  className="w-full p-2.5 bg-slate-100 dark:bg-slate-900 border-transparent rounded-lg focus:ring-2 focus:ring-brand-500 focus:bg-white dark:focus:bg-slate-800 dark:text-white transition-all outline-none"
+                  value={newTrip.vehicleModel || ''}
+                  onChange={(e) => setNewTrip({...newTrip, vehicleModel: e.target.value})}
+                  placeholder="Ex: Volvo B12R, Mercedes Sprinter"
+                />
+              </div>
+
               <div>
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Data da Viagem</label>
                 <input 
@@ -738,14 +764,16 @@ export const TripManager: React.FC<TripManagerProps> = ({ trips, onAddTrip, onAd
 
               <div className="pt-4 flex justify-end gap-3 border-t border-slate-100 dark:border-slate-700 mt-2">
                 <button type="button" onClick={() => setIsTripModalOpen(false)} className="px-4 py-2 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg">Cancelar</button>
-                <button type="submit" className="px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 font-medium">Criar Viagem</button>
+                <button type="submit" className="px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 font-medium">
+                    {editingTripId ? 'Salvar Alterações' : 'Criar Viagem'}
+                </button>
               </div>
             </form>
           </div>
         </div>
       )}
 
-      {/* Modal: Add Passenger */}
+      {/* Modal: Add Passenger (No changes here, kept for completeness of file if needed, but omitted for brevity in XML if not changed logic) */}
       {isPaxModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
           <div className="bg-white dark:bg-slate-800 rounded-2xl w-full max-w-lg shadow-2xl animate-fade-in overflow-hidden max-h-[95vh] overflow-y-auto">
@@ -788,7 +816,6 @@ export const TripManager: React.FC<TripManagerProps> = ({ trips, onAddTrip, onAd
                 </div>
               </div>
 
-              {/* Financial Section */}
               <div className="bg-slate-50 dark:bg-slate-900/50 p-4 rounded-xl border border-slate-200 dark:border-slate-700">
                   <h4 className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-3 flex items-center gap-1">
                       <DollarSign size={14}/> Dados Financeiros

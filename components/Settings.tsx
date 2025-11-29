@@ -1,23 +1,34 @@
 
 import React, { useState } from 'react';
 import { CompanyProfile } from '../types';
-import { Building2, Save, MapPin, Phone, Mail } from 'lucide-react';
+import { Building2, Save, MapPin, Phone, Mail, Database, RefreshCw } from 'lucide-react';
 import { AddressAutocomplete } from './TripManager';
 
 interface SettingsProps {
   companyProfile: CompanyProfile;
   onUpdateCompany: (profile: CompanyProfile) => void;
+  onSeedData?: () => Promise<void>;
 }
 
-export const Settings: React.FC<SettingsProps> = ({ companyProfile, onUpdateCompany }) => {
+export const Settings: React.FC<SettingsProps> = ({ companyProfile, onUpdateCompany, onSeedData }) => {
   const [formData, setFormData] = useState<CompanyProfile>(companyProfile);
   const [saved, setSaved] = useState(false);
+  const [seeding, setSeeding] = useState(false);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onUpdateCompany(formData);
     setSaved(true);
     setTimeout(() => setSaved(false), 3000);
+  };
+
+  const handleSeed = async () => {
+      if(onSeedData && window.confirm("Isso adicionará dados de exemplo ao seu banco de dados. Deseja continuar?")) {
+          setSeeding(true);
+          await onSeedData();
+          setSeeding(false);
+          alert("Dados de exemplo carregados com sucesso!");
+      }
   };
 
   return (
@@ -100,6 +111,27 @@ export const Settings: React.FC<SettingsProps> = ({ companyProfile, onUpdateComp
                 </button>
             </div>
          </form>
+      </div>
+
+      {/* Demo Data Section */}
+      <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 p-8">
+          <div className="flex items-center gap-4 mb-4">
+              <div className="p-2 bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 rounded-lg">
+                  <Database size={20} />
+              </div>
+              <div>
+                  <h3 className="font-bold text-lg text-slate-800 dark:text-white">Dados de Demonstração</h3>
+                  <p className="text-sm text-slate-500">Use esta opção para preencher o banco de dados com veículos e passageiros de teste.</p>
+              </div>
+          </div>
+          <button 
+              onClick={handleSeed}
+              disabled={seeding}
+              className="w-full py-3 border-2 border-dashed border-slate-300 dark:border-slate-600 rounded-xl text-slate-600 dark:text-slate-300 font-bold hover:border-brand-500 hover:text-brand-600 dark:hover:text-brand-400 transition-colors flex items-center justify-center gap-2"
+          >
+              {seeding ? <RefreshCw className="animate-spin" size={20} /> : <Database size={20} />}
+              {seeding ? 'Carregando...' : 'Carregar Dados de Exemplo'}
+          </button>
       </div>
     </div>
   );
