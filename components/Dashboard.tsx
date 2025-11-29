@@ -1,0 +1,265 @@
+
+import React, { useState, useMemo } from 'react';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, PieChart, Pie } from 'recharts';
+import { Trip } from '../types';
+import { Users, AlertTriangle, CheckCircle, Bus, Calendar, DollarSign, Wallet, PiggyBank, X, Filter } from 'lucide-react';
+
+interface DashboardProps {
+  trips: Trip[];
+}
+
+export const Dashboard: React.FC<DashboardProps> = ({ trips }) => {
+  // Date Range State
+  const [dateRange, setDateRange] = useState<{start: string, end: string}>({ start: '', end: '' });
+
+  // Filter trips by date range
+  const filteredTrips = useMemo(() => {
+     if (!dateRange.start && !dateRange.end) return trips;
+     
+     return trips.filter(trip => {
+       const tripDate = trip.date;
+       if (dateRange.start && !dateRange.end) return tripDate === dateRange.start;
+       if (dateRange.start && dateRange.end) return tripDate >= dateRange.start && tripDate <= dateRange.end;
+       return true;
+     });
+  }, [trips, dateRange]);
+
+  // Calculate stats based on filtered trips
+  const totalPax = filteredTrips.reduce((acc, trip) => acc + trip.passengers.reduce((sum, p) => sum + p.paxCount, 0), 0);
+  const totalCapacity = filteredTrips.reduce((acc, trip) => acc + trip.totalSeats, 0);
+  const overbookedPax = filteredTrips.reduce((acc, trip) => acc + trip.passengers.filter(p => p.isOverbooked).reduce((sum, p) => sum + p.paxCount, 0), 0);
+  const activeVehicles = filteredTrips.length;
+  
+  // Financial Stats
+  const totalServiceValue = filteredTrips.reduce((acc, trip) => acc + trip.passengers.reduce((sum, p) => sum + (p.totalValue || 0), 0), 0);
+  const totalPaidAmount = filteredTrips.reduce((acc, trip) => acc + trip.passengers.reduce((sum, p) => sum + (p.paidAmount || 0), 0), 0);
+  const totalReceivableAmount = filteredTrips.reduce((acc, trip) => acc + trip.passengers.reduce((sum, p) => sum + (p.receivableAmount || 0), 0), 0);
+
+  const chartData = filteredTrips.map(trip => {
+    const paxCount = trip.passengers.reduce((sum, p) => sum + p.paxCount, 0);
+    return {
+      name: trip.destination.length > 15 ? trip.destination.substring(0, 15) + '...' : trip.destination,
+      fullDate: trip.date.split('-').reverse().slice(0, 2).join('/'), // DD/MM
+      occupied: paxCount,
+      capacity: trip.totalSeats,
+      isFull: paxCount > trip.totalSeats
+    };
+  });
+
+  const formatDateDisplay = (isoDate: string) => {
+      if (!isoDate) return '';
+      return isoDate.split('-').reverse().join('/');
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+           <h1 className="text-2xl font-bold text-slate-800 dark:text-white">Painel Operacional</h1>
+           <p className="text-slate-500 dark:text-slate-400 text-sm">
+              {dateRange.start 
+                ? `Exibindo: ${formatDateDisplay(dateRange.start)} ${dateRange.end ? 'até ' + formatDateDisplay(dateRange.end) : ''}`
+                : 'Visão Geral (Todo o Período)'}
+           </p>
+        </div>
+        
+        {/* Styled Calendar Range Filter */}
+        <div className="relative group min-w-[320px]">
+           {/* Glow Effect */}
+           <div className="absolute inset-0 bg-sky-400/30 rounded-xl blur-md transition-all group-hover:bg-sky-400/50"></div>
+           
+           <div className="relative flex items-center gap-2 bg-sky-100/80 dark:bg-sky-900/40 backdrop-blur-md border border-sky-200 dark:border-sky-700 p-2 rounded-xl shadow-lg transition-all hover:scale-[1.02]">
+               <div className="bg-sky-500 text-white p-2 rounded-lg shadow-sm shrink-0">
+                   <Calendar size={20} />
+               </div>
+               
+               <div className="flex items-center gap-2 flex-1">
+                   <div className="flex flex-col flex-1">
+                       <span className="text-[10px] font-bold uppercase text-sky-700 dark:text-sky-300 tracking-wider mb-0.5">De</span>
+                       <input 
+                         type="date" 
+                         className="bg-transparent border-none p-0 text-slate-800 dark:text-white text-xs font-bold focus:ring-0 cursor-pointer outline-none font-sans w-full"
+                         value={dateRange.start}
+                         onChange={(e) => setDateRange({...dateRange, start: e.target.value})}
+                       />
+                   </div>
+                   <div className="h-6 w-px bg-sky-300 dark:bg-sky-700"></div>
+                   <div className="flex flex-col flex-1">
+                       <span className="text-[10px] font-bold uppercase text-sky-700 dark:text-sky-300 tracking-wider mb-0.5">Até</span>
+                       <input 
+                         type="date" 
+                         className="bg-transparent border-none p-0 text-slate-800 dark:text-white text-xs font-bold focus:ring-0 cursor-pointer outline-none font-sans w-full"
+                         value={dateRange.end}
+                         min={dateRange.start}
+                         onChange={(e) => setDateRange({...dateRange, end: e.target.value})}
+                       />
+                   </div>
+               </div>
+
+               {(dateRange.start || dateRange.end) && (
+                   <button 
+                     onClick={() => setDateRange({start: '', end: ''})}
+                     className="p-1.5 text-sky-700 dark:text-sky-300 hover:bg-sky-200 dark:hover:bg-sky-800 rounded-full transition-colors shrink-0"
+                     title="Limpar Filtro (Ver Tudo)"
+                   >
+                       <X size={16} />
+                   </button>
+               )}
+           </div>
+        </div>
+      </div>
+
+      {filteredTrips.length === 0 ? (
+          <div className="bg-white dark:bg-slate-800 p-12 rounded-2xl border border-dashed border-slate-300 dark:border-slate-700 text-center animate-fade-in">
+              <Bus size={48} className="mx-auto mb-4 text-slate-300 dark:text-slate-600" />
+              <h3 className="text-lg font-bold text-slate-600 dark:text-slate-300">Nenhuma viagem encontrada</h3>
+              <p className="text-slate-500 dark:text-slate-400 mt-2">Tente selecionar outra data ou limpe o filtro para ver todas.</p>
+          </div>
+      ) : (
+      <>
+      {/* Financial Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 animate-fade-in">
+          <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 flex items-center justify-between transition-colors hover:shadow-md">
+            <div>
+              <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Receita Total Estimada</p>
+              <p className="text-2xl font-bold text-slate-800 dark:text-white mt-1">
+                {totalServiceValue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+              </p>
+              <p className="text-xs text-slate-400 mt-1">Volume de Vendas</p>
+            </div>
+            <div className="p-4 bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-2xl shadow-lg shadow-blue-500/30">
+              <DollarSign size={24} />
+            </div>
+          </div>
+
+          <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 flex items-center justify-between transition-colors hover:shadow-md">
+            <div>
+              <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Total Pago (Vendedores)</p>
+              <p className="text-2xl font-bold text-slate-800 dark:text-white mt-1">
+                {totalPaidAmount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+              </p>
+              <p className="text-xs text-slate-400 mt-1">Caixa Entrado</p>
+            </div>
+            <div className="p-4 bg-gradient-to-br from-purple-500 to-purple-600 text-white rounded-2xl shadow-lg shadow-purple-500/30">
+              <Wallet size={24} />
+            </div>
+          </div>
+
+          <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border-l-4 border-l-emerald-500 border-y border-r border-slate-100 dark:border-slate-700 flex items-center justify-between transition-colors hover:shadow-md">
+            <div>
+              <p className="text-sm font-medium text-emerald-600 dark:text-emerald-400 font-bold uppercase">A Receber no Embarque</p>
+              <p className="text-3xl font-bold text-emerald-700 dark:text-emerald-400 mt-1">
+                {totalReceivableAmount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+              </p>
+              <p className="text-xs text-emerald-600/70 dark:text-emerald-500/70 mt-1">Pendente</p>
+            </div>
+            <div className="p-4 bg-gradient-to-br from-emerald-500 to-emerald-600 text-white rounded-2xl shadow-lg shadow-emerald-500/30">
+              <PiggyBank size={24} />
+            </div>
+          </div>
+      </div>
+
+      {/* Operational Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 animate-fade-in">
+        <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 flex items-center justify-between transition-colors">
+          <div>
+            <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Passageiros</p>
+            <p className="text-3xl font-bold text-slate-800 dark:text-white mt-1">{totalPax}</p>
+          </div>
+          <div className="p-3 bg-slate-50 dark:bg-slate-700/50 text-slate-600 dark:text-slate-400 rounded-xl">
+            <Users size={24} />
+          </div>
+        </div>
+
+        <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 flex items-center justify-between transition-colors">
+          <div>
+            <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Viagens/Veículos</p>
+            <p className="text-3xl font-bold text-slate-800 dark:text-white mt-1">{activeVehicles}</p>
+            <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">Capacidade Total: {totalCapacity}</p>
+          </div>
+          <div className="p-3 bg-slate-50 dark:bg-slate-700/50 text-slate-600 dark:text-slate-400 rounded-xl">
+            <Bus size={24} />
+          </div>
+        </div>
+
+        <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 flex items-center justify-between transition-colors">
+          <div>
+            <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Ocupação Média</p>
+            <p className="text-3xl font-bold text-slate-800 dark:text-white mt-1">
+              {totalCapacity > 0 ? Math.round((totalPax / totalCapacity) * 100) : 0}%
+            </p>
+          </div>
+          <div className="p-3 bg-slate-50 dark:bg-slate-700/50 text-slate-600 dark:text-slate-400 rounded-xl">
+            <CheckCircle size={24} />
+          </div>
+        </div>
+
+        <div className={`p-6 rounded-2xl shadow-sm border flex items-center justify-between transition-colors ${overbookedPax > 0 ? 'bg-red-50 dark:bg-red-900/20 border-red-100 dark:border-red-900/50' : 'bg-white dark:bg-slate-800 border-slate-100 dark:border-slate-700'}`}>
+          <div>
+            <p className={`text-sm font-medium ${overbookedPax > 0 ? 'text-red-600 dark:text-red-400' : 'text-slate-500 dark:text-slate-400'}`}>Overbooking</p>
+            <p className={`text-3xl font-bold mt-1 ${overbookedPax > 0 ? 'text-red-700 dark:text-red-300' : 'text-slate-800 dark:text-white'}`}>{overbookedPax}</p>
+          </div>
+          <div className={`p-3 rounded-xl ${overbookedPax > 0 ? 'bg-white dark:bg-red-900/30 text-red-600 dark:text-red-400' : 'bg-slate-50 dark:bg-slate-700 text-slate-600 dark:text-slate-400'}`}>
+            <AlertTriangle size={24} />
+          </div>
+        </div>
+      </div>
+
+      {/* Charts Section */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 animate-fade-in">
+        <div className="lg:col-span-2 bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 transition-colors">
+          <h2 className="text-lg font-bold text-slate-800 dark:text-white mb-6">Ocupação por Destino/Viagem</h2>
+          <div className="h-72 w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={chartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" className="dark:opacity-20" />
+                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b' }} interval={0} />
+                <YAxis axisLine={false} tickLine={false} tick={{ fill: '#64748b' }} />
+                <Tooltip 
+                  cursor={{ fill: 'transparent' }}
+                  contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)', backgroundColor: '#1e293b', color: '#f8fafc' }}
+                />
+                <Bar dataKey="occupied" radius={[4, 4, 0, 0]} barSize={40} name="Passageiros">
+                  {chartData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={entry.occupied > entry.capacity ? '#ef4444' : '#0ea5e9'} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        {/* Quick List / Attention */}
+        <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 overflow-y-auto transition-colors flex flex-col">
+            <h2 className="text-lg font-bold text-slate-800 dark:text-white mb-4">Atenção Necessária</h2>
+            <div className="space-y-3 flex-1">
+              {filteredTrips.filter(t => t.passengers.some(p => p.isOverbooked)).length === 0 ? (
+                <div className="h-full flex flex-col items-center justify-center text-center py-8 text-slate-400 dark:text-slate-500">
+                  <div className="p-4 bg-emerald-50 dark:bg-emerald-900/20 rounded-full mb-3">
+                      <CheckCircle size={32} className="text-emerald-500 dark:text-emerald-400" />
+                  </div>
+                  <p className="font-medium text-slate-600 dark:text-slate-300">Tudo Certo!</p>
+                  <p className="text-xs mt-1">Nenhum problema de overbooking detectado nas viagens exibidas.</p>
+                </div>
+              ) : (
+                filteredTrips.filter(t => t.passengers.some(p => p.isOverbooked)).map(trip => (
+                  <div key={trip.id} className="p-4 bg-red-50 dark:bg-red-900/20 rounded-xl border-l-4 border-red-500 dark:border-red-400 flex gap-3 shadow-sm">
+                     <div className="mt-1"><AlertTriangle className="text-red-500 dark:text-red-400" size={18} /></div>
+                     <div>
+                       <p className="text-sm font-bold text-red-900 dark:text-red-200">{trip.destination}</p>
+                       <p className="text-xs text-red-700 dark:text-red-400 mb-1">{trip.date.split('-').reverse().join('/')} às {trip.time}</p>
+                       <span className="inline-block bg-red-200 dark:bg-red-900/50 text-red-800 dark:text-red-200 text-[10px] font-bold px-2 py-0.5 rounded-full">
+                         {trip.passengers.filter(p => p.isOverbooked).reduce((s, p) => s + p.paxCount, 0)} passageiros excedentes
+                       </span>
+                     </div>
+                  </div>
+                ))
+              )}
+            </div>
+        </div>
+      </div>
+      </>
+      )}
+    </div>
+  );
+};
