@@ -1,6 +1,5 @@
-
 import React, { useState } from 'react';
-import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { HashRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import { Layout } from './components/Layout';
 import { Dashboard } from './components/Dashboard';
 import { TripManager } from './components/TripManager';
@@ -8,7 +7,11 @@ import { OverbookingManager } from './components/OverbookingManager';
 import { ReportView } from './components/ReportView';
 import { Settings } from './components/Settings';
 import { RouteOptimizer } from './components/RouteOptimizer';
+import { LoginPage } from './components/LoginPage';
+import { RegisterPage } from './components/RegisterPage';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { Trip, Partner, Passenger, VehicleType, CompanyProfile } from './types';
+import { Loader } from 'lucide-react';
 
 // Mock Initial Data
 const INITIAL_TRIPS: Trip[] = [
@@ -89,7 +92,22 @@ const INITIAL_COMPANY: CompanyProfile = {
     email: 'contato@turismoflow.com'
 };
 
-const App: React.FC = () => {
+// Protected Route Component
+const ProtectedRoute = () => {
+    const { session, loading } = useAuth();
+    
+    if (loading) {
+        return (
+            <div className="h-screen w-full flex items-center justify-center bg-slate-50 dark:bg-slate-950">
+                <Loader size={40} className="text-brand-600 animate-spin" />
+            </div>
+        );
+    }
+    
+    return session ? <Outlet /> : <Navigate to="/login" replace />;
+};
+
+const AppContent: React.FC = () => {
   const [trips, setTrips] = useState<Trip[]>(INITIAL_TRIPS);
   const [partners, setPartners] = useState<Partner[]>(INITIAL_PARTNERS);
   const [companyProfile, setCompanyProfile] = useState<CompanyProfile>(INITIAL_COMPANY);
@@ -160,55 +178,71 @@ const App: React.FC = () => {
   };
 
   return (
-    <HashRouter>
-      <Layout>
-        <Routes>
-          <Route path="/" element={<Dashboard trips={trips} />} />
-          <Route 
-            path="/trips" 
-            element={
-              <TripManager 
-                trips={trips} 
-                onAddTrip={addTrip} 
-                onAddPassenger={addPassenger} 
-              />
-            } 
-          />
-          <Route 
-            path="/overbooking" 
-            element={
-              <OverbookingManager 
-                trips={trips} 
-                partners={partners}
-                onAddPartner={addPartner}
-                onUpdatePartner={updatePartner}
-                onReassignPax={reassignPax}
-              />
-            } 
-          />
-          <Route 
-            path="/reports" 
-            element={<ReportView trips={trips} partners={partners} />} 
-          />
-          <Route 
-             path="/settings"
-             element={<Settings companyProfile={companyProfile} onUpdateCompany={setCompanyProfile} />}
-          />
-          <Route 
-             path="/routes"
-             element={
-                <RouteOptimizer 
-                    trips={trips} 
-                    companyProfile={companyProfile} 
-                    onUpdatePaxStatus={updatePaxStatus}
-                />
-             }
-          />
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </Layout>
-    </HashRouter>
+    <Routes>
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/register" element={<RegisterPage />} />
+        
+        {/* Protected Routes Wrapper */}
+        <Route element={<ProtectedRoute />}>
+            <Route path="/" element={
+                <Layout>
+                    <Dashboard trips={trips} />
+                </Layout>
+            } />
+            <Route path="/trips" element={
+                <Layout>
+                    <TripManager 
+                        trips={trips} 
+                        onAddTrip={addTrip} 
+                        onAddPassenger={addPassenger} 
+                    />
+                </Layout>
+            } />
+            <Route path="/overbooking" element={
+                <Layout>
+                    <OverbookingManager 
+                        trips={trips} 
+                        partners={partners}
+                        onAddPartner={addPartner}
+                        onUpdatePartner={updatePartner}
+                        onReassignPax={reassignPax}
+                    />
+                </Layout>
+            } />
+            <Route path="/reports" element={
+                <Layout>
+                    <ReportView trips={trips} partners={partners} />
+                </Layout>
+            } />
+            <Route path="/settings" element={
+                <Layout>
+                    <Settings companyProfile={companyProfile} onUpdateCompany={setCompanyProfile} />
+                </Layout>
+            } />
+            <Route path="/routes" element={
+                <Layout>
+                    <RouteOptimizer 
+                        trips={trips} 
+                        companyProfile={companyProfile} 
+                        onUpdatePaxStatus={updatePaxStatus}
+                    />
+                </Layout>
+            } />
+        </Route>
+        
+        <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
   );
+};
+
+const App: React.FC = () => {
+    return (
+        <AuthProvider>
+            <HashRouter>
+                <AppContent />
+            </HashRouter>
+        </AuthProvider>
+    );
 };
 
 export default App;

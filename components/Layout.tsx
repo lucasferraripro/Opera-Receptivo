@@ -1,7 +1,7 @@
-
 import React, { useEffect, useState } from 'react';
-import { LayoutDashboard, Bus, Users, AlertTriangle, FileText, Menu, X, Moon, Sun, Map, Settings } from 'lucide-react';
-import { Link, useLocation } from 'react-router-dom';
+import { LayoutDashboard, Bus, AlertTriangle, FileText, Menu, X, Moon, Sun, Map, Settings, LogOut } from 'lucide-react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -11,6 +11,8 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(false);
   const location = useLocation();
+  const { user, signOut } = useAuth();
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (isDarkMode) {
@@ -19,6 +21,11 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
       document.documentElement.classList.remove('dark');
     }
   }, [isDarkMode]);
+
+  const handleSignOut = async () => {
+    await signOut();
+    navigate('/login');
+  };
 
   const navItems = [
     { name: 'Painel', path: '/', icon: <LayoutDashboard size={20} /> },
@@ -75,15 +82,23 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
         </nav>
 
         <div className="absolute bottom-0 w-full p-6 border-t border-slate-800 dark:border-slate-900">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-slate-700 dark:bg-slate-800 flex items-center justify-center text-sm font-bold border-2 border-slate-600 dark:border-slate-700">
-              AD
-            </div>
-            <div>
-              <p className="text-sm font-medium">Administrador</p>
-              <p className="text-xs text-slate-500 dark:text-slate-400">Gerente da Agência</p>
-            </div>
+          <div className="flex items-center justify-between gap-2 mb-4">
+             <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-slate-700 dark:bg-slate-800 flex items-center justify-center text-sm font-bold border-2 border-slate-600 dark:border-slate-700 text-white">
+                {user?.email?.slice(0, 2).toUpperCase() || 'AD'}
+                </div>
+                <div className="overflow-hidden">
+                <p className="text-sm font-medium truncate w-32">{user?.email || 'Administrador'}</p>
+                <p className="text-xs text-slate-500 dark:text-slate-400">Gerente</p>
+                </div>
+             </div>
           </div>
+          <button 
+             onClick={handleSignOut}
+             className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-sm transition-colors"
+          >
+             <LogOut size={16} /> Sair
+          </button>
         </div>
       </aside>
 
