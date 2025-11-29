@@ -33,10 +33,10 @@ export const LoginPage: React.FC = () => {
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex items-center justify-center p-4">
       <div className="max-w-md w-full bg-white dark:bg-slate-900 rounded-2xl shadow-xl overflow-hidden border border-slate-200 dark:border-slate-800">
         <div className="bg-brand-600 p-8 text-center">
-          <div className="w-16 h-16 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
-            <Bus className="text-white" size={32} />
+          <div className="w-16 h-16 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg font-black text-3xl text-white tracking-tighter">
+            OR
           </div>
-          <h1 className="text-2xl font-bold text-white">TurismoFlow CRM</h1>
+          <h1 className="text-2xl font-bold text-white">Opera Receptivo</h1>
           <p className="text-brand-100 mt-2 text-sm">Faça login para gerenciar sua agência</p>
         </div>
 

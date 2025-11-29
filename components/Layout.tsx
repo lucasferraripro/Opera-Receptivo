@@ -31,7 +31,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
     { name: 'Painel', path: '/', icon: <LayoutDashboard size={20} /> },
     { name: 'Frota & Viagens', path: '/trips', icon: <Bus size={20} /> },
     { name: 'Embarques e Rotas', path: '/routes', icon: <Map size={20} /> },
-    { name: 'Overbooking & Parceiros', path: '/overbooking', icon: <AlertTriangle size={20} /> },
+    { name: 'Parceiros e Repasses', path: '/overbooking', icon: <AlertTriangle size={20} /> },
     { name: 'Relatórios Diários', path: '/reports', icon: <FileText size={20} /> },
     { name: 'Configurações', path: '/settings', icon: <Settings size={20} /> },
   ];
@@ -49,11 +49,14 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
       {/* Sidebar */}
       <aside className={`fixed inset-y-0 left-0 z-30 w-64 bg-slate-900 dark:bg-slate-950 text-white transform transition-transform duration-300 lg:static lg:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
         <div className="flex items-center justify-between p-6 border-b border-slate-700 dark:border-slate-800">
-          <div className="flex items-center gap-2">
-            <div className="bg-brand-500 p-2 rounded-lg shadow-lg shadow-brand-500/20">
-              <Bus className="text-white" size={24} />
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-brand-600 rounded-lg flex items-center justify-center font-black text-xl text-white tracking-tighter shadow-lg shadow-brand-900/50">
+              OR
             </div>
-            <span className="text-xl font-bold tracking-tight">TurismoFlow</span>
+            <div className="flex flex-col">
+                <span className="text-lg font-bold tracking-tight leading-none">Opera</span>
+                <span className="text-xs text-slate-400 font-medium tracking-widest uppercase">Receptivo</span>
+            </div>
           </div>
           <button className="lg:hidden" onClick={() => setIsSidebarOpen(false)}>
             <X size={24} />

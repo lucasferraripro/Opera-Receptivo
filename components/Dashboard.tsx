@@ -1,8 +1,7 @@
-
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, PieChart, Pie } from 'recharts';
 import { Trip } from '../types';
-import { Users, AlertTriangle, CheckCircle, Bus, Calendar, DollarSign, Wallet, PiggyBank, X, Filter } from 'lucide-react';
+import { Users, AlertTriangle, CheckCircle, Bus, Calendar, DollarSign, Wallet, PiggyBank, X, Filter, ChevronDown, ChevronRight } from 'lucide-react';
 
 interface DashboardProps {
   trips: Trip[];
@@ -11,6 +10,18 @@ interface DashboardProps {
 export const Dashboard: React.FC<DashboardProps> = ({ trips }) => {
   // Date Range State
   const [dateRange, setDateRange] = useState<{start: string, end: string}>({ start: '', end: '' });
+  const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
+  const datePickerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (datePickerRef.current && !datePickerRef.current.contains(event.target as Node)) {
+        setIsDatePickerOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   // Filter trips by date range
   const filteredTrips = useMemo(() => {
@@ -51,61 +62,85 @@ export const Dashboard: React.FC<DashboardProps> = ({ trips }) => {
       return isoDate.split('-').reverse().join('/');
   };
 
+  const getFilterLabel = () => {
+    if (!dateRange.start && !dateRange.end) return "Todo o Período";
+    if (dateRange.start && !dateRange.end) return formatDateDisplay(dateRange.start);
+    if (dateRange.start && dateRange.end) return `${formatDateDisplay(dateRange.start)} - ${formatDateDisplay(dateRange.end)}`;
+    return "Filtro Personalizado";
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
            <h1 className="text-2xl font-bold text-slate-800 dark:text-white">Painel Operacional</h1>
            <p className="text-slate-500 dark:text-slate-400 text-sm">
-              {dateRange.start 
-                ? `Exibindo: ${formatDateDisplay(dateRange.start)} ${dateRange.end ? 'até ' + formatDateDisplay(dateRange.end) : ''}`
-                : 'Visão Geral (Todo o Período)'}
+              Visão geral de desempenho e ocupação.
            </p>
         </div>
         
-        {/* Styled Calendar Range Filter */}
-        <div className="relative group min-w-[320px]">
-           {/* Glow Effect */}
-           <div className="absolute inset-0 bg-sky-400/30 rounded-xl blur-md transition-all group-hover:bg-sky-400/50"></div>
-           
-           <div className="relative flex items-center gap-2 bg-sky-100/80 dark:bg-sky-900/40 backdrop-blur-md border border-sky-200 dark:border-sky-700 p-2 rounded-xl shadow-lg transition-all hover:scale-[1.02]">
-               <div className="bg-sky-500 text-white p-2 rounded-lg shadow-sm shrink-0">
-                   <Calendar size={20} />
-               </div>
-               
-               <div className="flex items-center gap-2 flex-1">
-                   <div className="flex flex-col flex-1">
-                       <span className="text-[10px] font-bold uppercase text-sky-700 dark:text-sky-300 tracking-wider mb-0.5">De</span>
-                       <input 
-                         type="date" 
-                         className="bg-transparent border-none p-0 text-slate-800 dark:text-white text-xs font-bold focus:ring-0 cursor-pointer outline-none font-sans w-full"
-                         value={dateRange.start}
-                         onChange={(e) => setDateRange({...dateRange, start: e.target.value})}
-                       />
-                   </div>
-                   <div className="h-6 w-px bg-sky-300 dark:bg-sky-700"></div>
-                   <div className="flex flex-col flex-1">
-                       <span className="text-[10px] font-bold uppercase text-sky-700 dark:text-sky-300 tracking-wider mb-0.5">Até</span>
-                       <input 
-                         type="date" 
-                         className="bg-transparent border-none p-0 text-slate-800 dark:text-white text-xs font-bold focus:ring-0 cursor-pointer outline-none font-sans w-full"
-                         value={dateRange.end}
-                         min={dateRange.start}
-                         onChange={(e) => setDateRange({...dateRange, end: e.target.value})}
-                       />
-                   </div>
-               </div>
+        {/* Dropdown Calendar Range Filter */}
+        <div className="relative" ref={datePickerRef}>
+           <button 
+             onClick={() => setIsDatePickerOpen(!isDatePickerOpen)}
+             className={`
+                flex items-center gap-3 px-4 py-2.5 rounded-xl border transition-all shadow-sm
+                ${isDatePickerOpen 
+                    ? 'bg-brand-50 border-brand-200 text-brand-700 ring-2 ring-brand-100 dark:bg-brand-900/30 dark:border-brand-700 dark:text-brand-300' 
+                    : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-200'}
+             `}
+           >
+               <Calendar size={18} className={isDatePickerOpen ? "text-brand-500" : "text-slate-400"} />
+               <span className="font-medium text-sm">{getFilterLabel()}</span>
+               <ChevronDown size={16} className={`transition-transform duration-200 ${isDatePickerOpen ? 'rotate-180' : ''}`} />
+           </button>
 
-               {(dateRange.start || dateRange.end) && (
-                   <button 
-                     onClick={() => setDateRange({start: '', end: ''})}
-                     className="p-1.5 text-sky-700 dark:text-sky-300 hover:bg-sky-200 dark:hover:bg-sky-800 rounded-full transition-colors shrink-0"
-                     title="Limpar Filtro (Ver Tudo)"
-                   >
-                       <X size={16} />
-                   </button>
-               )}
-           </div>
+           {/* Dropdown Content */}
+           {isDatePickerOpen && (
+               <div className="absolute right-0 top-full mt-2 w-72 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-200 dark:border-slate-700 p-4 z-50 animate-fade-in">
+                   <div className="space-y-4">
+                       <div className="space-y-1">
+                           <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase">Data Inicial</label>
+                           <input 
+                               type="date" 
+                               className="w-full p-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm dark:text-white focus:ring-2 focus:ring-brand-500 outline-none"
+                               value={dateRange.start}
+                               onChange={(e) => setDateRange({...dateRange, start: e.target.value})}
+                           />
+                       </div>
+                       
+                       <div className="flex justify-center">
+                           <ChevronDown size={16} className="text-slate-300" />
+                       </div>
+
+                       <div className="space-y-1">
+                           <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase">Data Final</label>
+                           <input 
+                               type="date" 
+                               className="w-full p-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm dark:text-white focus:ring-2 focus:ring-brand-500 outline-none"
+                               value={dateRange.end}
+                               min={dateRange.start}
+                               onChange={(e) => setDateRange({...dateRange, end: e.target.value})}
+                           />
+                       </div>
+
+                       <div className="pt-2 flex gap-2 border-t border-slate-100 dark:border-slate-700">
+                           <button 
+                               onClick={() => { setDateRange({start: '', end: ''}); setIsDatePickerOpen(false); }}
+                               className="flex-1 py-2 text-xs font-bold text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg"
+                           >
+                               Limpar (Tudo)
+                           </button>
+                           <button 
+                               onClick={() => setIsDatePickerOpen(false)}
+                               className="flex-1 py-2 text-xs font-bold bg-brand-600 text-white hover:bg-brand-700 rounded-lg"
+                           >
+                               Aplicar
+                           </button>
+                       </div>
+                   </div>
+               </div>
+           )}
         </div>
       </div>
 
